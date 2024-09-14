@@ -1,26 +1,34 @@
 import { Body, Controller, Post } from "@nestjs/common";
-import { PrismaService } from "../prisma.service";
-import { HttpCode } from "@nestjs/common";
+
 import { ConflictException } from "@nestjs/common";
 import { hash } from "bcryptjs";
+import { PrismaService } from "src/prisma/prisma.service";
+import { AuthService } from "src/services/auth.service";
 import { z } from "zod";
 
 
 const createUserBodySchema = z.object({
   name: z.string(),
   email: z.string().email(),
-  password: z.string()
+  password: z.string(),
+  token: z.string()
 })
 
 type CreateUserBodySchema = z.infer<typeof createUserBodySchema>
 
 @Controller('users')
 export class CreateUserController {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private readonly authService: AuthService,
+
+  ) { }
 
   @Post()
   async createUser(@Body() body: CreateUserBodySchema) {
-    const { name, email, password } = createUserBodySchema.parse(body)
+    const { name, email, password, token } = createUserBodySchema.parse(body)
+
+    this.authService.verifyToken(token)
 
     const findEmail = await this.prisma.user.findUnique({ where: { email: email } })
 
